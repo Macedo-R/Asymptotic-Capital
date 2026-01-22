@@ -1,0 +1,97 @@
+# GUIA DE CONFIGURAÇÃO - SISTEMA QUANTITATIVO ISING
+
+Este guia contém as fórmulas exatas para o Google Sheets (padrão Brasil, separador ;).
+
+## ABA 1: IsingThermometer (Termômetro de Pânico)
+
+**Objetivo:** Calcular a "Temperatura" (Liquidez) e "Magnetização" (Probabilidade de Crash).
+
+| Célula | Descrição (Rótulo) | Fórmula (Copiar e Colar) | Formatação Sugerida |
+| :--- | :--- | :--- | :--- |
+| **A1** | VIX (Medo Global) | `=GOOGLEFINANCE("INDEXCBOE:VIX")` | Número |
+| **A2** | USD/BRL (Câmbio) | `=GOOGLEFINANCE("USDBRL")` | Moeda |
+| **A3** | Volatilidade USD (30d) | `=DESVPAD(QUERY(GOOGLEFINANCE("USDBRL";"price";HOJE()-45;HOJE());"select Col2 offset 1"))*RAIZ(252)` | Porcentagem |
+| **A4** | Temperatura (T) | `=1/((A1/25) + (A3*8))` | Número (2 casas) |
+| **A5** | Magnetização (M) | `=TANH(1/A4)` | Número (2 casas) |
+| **A6** | STATUS MERCADO | `=SE(A5>0,7; "CRASH (CAIXA)"; SE(A5>0,3; "ALERTA (DEFESA)"; "NORMAL (COMPRA)"))` | Negrito, Texto |
+
+---
+
+## ABA 2: DailyData (Entrada de Dados)
+
+**Objetivo:** Histórico de operações e preços diários. Arraste as fórmulas de C e E para baixo conforme preenche as datas.
+
+| Coluna | Cabeçalho (Linha 1) | Fórmula na Linha 2 (Arrastar para baixo) | Observação |
+| :--- | :--- | :--- | :--- |
+| **A** | Data | (Digitar Data Manualmente: ex 20/01/2026) | Formatar como Data |
+| **B** | Ativo | (Digitar Ticker: ex Tesouro IPCA+ 2035) | Texto |
+| **C** | Preço Unitário | `=SE(B2="Tesouro IPCA+ 2035"; TESOURO_DIRETO(B2); GOOGLEFINANCE(B2))` | Moeda (Script necessário para Tesouro) |
+| **D** | Quantidade | (Digitar Manualmente: ex 2,5) | Número |
+| **E** | Valor Total | `=C2*D2` | Moeda |
+| **F** | Notas | (Manual) | Texto |
+
+> **Nota:** Para congelar o histórico e não recalculá-lo todo dia, copie e "Cole Apenas Valores" nas linhas de datas passadas.
+
+---
+
+## ABA 3: PortfolioSummary (Painel de Controle)
+
+**Objetivo:** Agregar o valor total da carteira por dia automaticamente.
+
+| Célula | Cabeçalho (Linha 1) | Fórmula na Linha 2 (Arrastar para baixo) |
+| :--- | :--- | :--- |
+| **A** | Data | `=SORT(UNIQUE(DailyData!A2:A))` |
+| **B** | Patrimônio Bruto | `=SOMA.SE(DailyData!A:A; A2; DailyData!E:E)` |
+| **C** | Lucro Diário (R$) | `=SE(LIN()=2; 0; B2-B1)` |
+| **D** | Retorno Log (%) | `=SE(LIN()=2; 0; LN(B2/B1))` |
+| **E** | Lucro Acumulado | `=SOMA($C$2:C2)` |
+| **F** | Drawdown | `=B2/MÁXIMO($B$2:B2)-1` |
+
+---
+
+## ABA 4: Sinais (Radar de Oportunidades)
+
+**Objetivo:** Indicar compra/venda baseado em Z-Score e Momentum.
+
+| Célula | Ticker (A) | Preço (B) | Média 20d (C) | DesvioPad (D) | Z-Score (E) | Decisão (F) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Linha 2** | ABEV3 | `=GOOGLEFINANCE(A2)` | `=MÉDIA(QUERY(GOOGLEFINANCE(A2; "price"; HOJE()-30; HOJE()); "select Col2 limit 20"))` | `=DESVPAD(QUERY(GOOGLEFINANCE(A2; "price"; HOJE()-30; HOJE()); "select Col2 limit 20"))` | `=(B2-C2)/D2` | `=SE(E2<-2;"COMPRA FORTE"; SE(E2>2;"VENDA"; "NEUTRO"))` |
+| **Linha 3** | AAPL34 | (Copiar fórmula acima) | (Copiar) | (Copiar) | (Copiar) | (Copiar) |
+| **Linha 4** | MSFT34 | (Copiar) | (Copiar) | (Copiar) | (Copiar) | (Copiar) |
+
+---
+
+## ABA 5: RiskLab (Matriz de Risco)
+
+**Objetivo:** Calcular risco da carteira (VaR).
+
+### 1. Tabela de Inputs (Células A1:D6)
+
+| Ticker (A) | Peso % (B) | Retorno Esp. (C) | Volatilidade (D) |
+| :--- | :--- | :--- | :--- |
+| IPCA+ 2035 | 30% | 12% | `=CALC_VOL(DailyData!C2:C50)` (Exemplo) |
+| ABEV3 | 25% | 15% | `=CALC_VOL(...)` |
+| AAPL34 | 25% | 20% | `=CALC_VOL(...)` |
+| USD/Ouro | 10% | 5% | `=CALC_VOL(...)` |
+| CDBs | 10% | 11% | 0,05% |
+
+### 2. Matriz de Covariância (Área G2:K6)
+
+Aqui você deve criar uma tabela multiplicando a correlação manual pelas volatilidades de D.
+
+* **Fórmula genérica para célula G2** (cruzamento Ativo 1 com Ativo 1):
+    `=1 * $D2 * $D2` (Onde 1 é a correlação do ativo com ele mesmo).
+
+* **Para Ativo 1 com Ativo 2** (se correlação for -0,3):
+    `=-0,3 * $D2 * $D3`.
+
+### 3. Cálculos Finais (Resultados)
+
+| Rótulo | Célula | Fórmula |
+| :--- | :--- | :--- |
+| Retorno Esperado | B10 | `=SOMARPRODUTO(B2:B6; C2:C6)` |
+| Variância Portfólio | B11 | `=MATRIZ.MULT(MATRIZ.MULT(TRANSPOR(B2:B6); G2:K6); B2:B6)` |
+| Volatilidade (Sigma) | B12 | `=RAIZ(B11)` |
+| VaR 95% (R$) | B13 | `=INV.NORM(0,05; B10/252; B12/RAIZ(252)) * 100000` |
+
+*(Assumindo carteira de R$ 100k)*
