@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop, copilot/* ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        cd python
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+
+    - name: Lint with ruff
+      run: |
+        cd python
+        ruff check ising_quant/
+      continue-on-error: true
+
+    - name: Format check with black
+      run: |
+        cd python
+        black --check ising_quant/
+      continue-on-error: true
+
+    - name: Run tests
+      run: |
+        cd python
+        pytest ../tests/ -v --tb=short
+
+    - name: Test package installation
+      run: |
+        cd python
+        isingctl version

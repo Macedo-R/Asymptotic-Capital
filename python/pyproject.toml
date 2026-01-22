@@ -1,0 +1,85 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ising-quant"
+version = "1.0.0"
+description = "Ising Quant System - Quantitative trading system using Ising model physics"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Asymptotic Capital", email = "info@example.com"}
+]
+keywords = ["trading", "quantitative", "finance", "ising-model", "portfolio"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "typer>=0.9.0",
+    "python-dotenv>=1.0.0",
+    "google-api-python-client>=2.100.0",
+    "google-auth>=2.23.0",
+    "google-auth-oauthlib>=1.1.0",
+    "google-auth-httplib2>=0.1.1",
+    "jinja2>=3.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.7.0",
+    "ruff>=0.0.285",
+]
+
+[project.scripts]
+isingctl = "ising_quant.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ising_quant*"]
+exclude = ["tests*"]
+
+[tool.pytest.ini_options]
+testpaths = ["../tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "I", "N", "W"]
+ignore = ["E501"]  # Line too long (handled by black)
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]  # Unused imports in __init__.py
