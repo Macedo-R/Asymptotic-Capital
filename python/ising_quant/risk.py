@@ -3,6 +3,8 @@ Risk calculation module for Ising Quant System.
 Calculates portfolio risk metrics from historical data.
 """
 
+from typing import Optional
+
 import numpy as np
 import pandas as pd
 
@@ -208,6 +210,3 @@ class RiskCalculator:
             lines.append(f"Days: {metrics['days_elapsed']}")
 
         return "\n".join(lines)
-
-
-from typing import Optional  # Add missing import at top
